@@ -1,0 +1,64 @@
+from iqoptionapi.stable_api import IQ_Option
+import time
+
+# Credenciais
+email = "seu_email"
+senha = "sua_senha"
+
+# Conectar na IQ Option
+iq = IQ_Option(email, senha)
+iq.connect()
+
+# Verificar se a conexão foi bem-sucedida
+if iq.check_connect():
+    print("Conectado com sucesso!")
+else:
+    print("Erro na conexão")
+    exit()
+
+# Função para obter o preço atual do ativo
+def get_current_price(symbol):
+    ACTIVES = symbol
+    duration = 1  # Tempo em minutos
+    candles = iq.get_candles(ACTIVES, duration * 60, 1, time.time())
+    return candles[0]['close']
+
+# Função para realizar a operação de compra ou venda
+def place_trade(symbol, amount, direction):
+    exp_time = 1  # Tempo de expiração em minutos
+    check, order_id = iq.buy(amount, symbol, direction, exp_time)
+    if check:
+        print(f"Ordem de {direction} colocada com sucesso")
+    else:
+        print("Erro ao colocar ordem")
+
+# Implementar lógica de previsão simples (exemplo: preço atual vs média dos últimos preços)
+def predict_price_movement(symbol):
+    duration = 1  # Tempo em minutos
+    candles = iq.get_candles(symbol, duration * 60, 10, time.time())
+    closing_prices = [candle['close'] for candle in candles]
+    current_price = closing_prices[-1]
+    average_price = sum(closing_prices[:-1]) / len(closing_prices[:-1])
+    
+    if current_price > average_price:
+        return "call"  # Preço vai subir
+    else:
+        return "put"  # Preço vai descer
+
+# Parâmetros da operação
+symbol = 'EURUSD'
+trade_amount = 100
+
+# Obter previsão e realizar operação
+trade_direction = predict_price_movement(symbol)
+place_trade(symbol, trade_amount, trade_direction)
+
+# Monitorar resultado da operação
+time.sleep(60)  # Espera a expiração da operação
+final_price = get_current_price(symbol)
+
+# Verificar se a operação foi bem-sucedida
+if (trade_direction == 'call' and final_price > current_price) or (trade_direction == 'put' and final_price < current_price):
+    print("Operação bem-sucedida!")
+else:
+    print("Operação falhou.")
